@@ -130,14 +130,14 @@ ContFramePool::FrameState ContFramePool::get_state(unsigned long _frame_no)
      * Then remove the remaining bits that are not two least significant bits
      */
 
-        unsigned char LSB = (bitmap[bitmap_index] >> framePos) & 0x3;
-    Console::puts("Checking frame state at index ");
-    Console::puti(bitmap_index);
-    Console::puts(" (framePos ");
-    Console::puti(framePos);
-    Console::puts(") Byte value: ");
-    Console::puti(LSB);
-    Console::puts("\n");
+    unsigned char LSB = (bitmap[bitmap_index] >> framePos) & 0x3;
+    // Console::puts("Checking frame state at index ");
+    // Console::puti(bitmap_index);
+    // Console::puts(" (framePos ");
+    // Console::puti(framePos);
+    // Console::puts(") Byte value: ");
+    // Console::puti(LSB);
+    // Console::puts("\n");
     switch (LSB)
     {
     case 0x0:
@@ -184,6 +184,8 @@ void ContFramePool::set_state(unsigned long _frame_no, FrameState _state) // abs
 
 // Constructor: Initialize all frames to FREE, except for any frames that you
 // need for the management of the frame pool, if any.
+// Question: is base frame number an absolute frame number?
+// As in not relative to frame pools?
 ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _n_frames,
                              unsigned long _info_frame_no)
@@ -197,7 +199,9 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
     nFreeFrames = _n_frames;
     info_frame_no = _info_frame_no;
 
-    for (int fno = _base_frame_no; fno < nframes; fno++)
+    // ATTENTION REQUIRED
+    // DO NOT TOUCH
+    for (int fno = 0; fno < nframes; fno++) // 0 or _base_frame_no?????????????????????
     {
         set_state(fno, FrameState::Free);
     }
@@ -206,15 +210,18 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
     {
         //  bitmap points to a starting address
         bitmap = (unsigned char *)(FRAME_SIZE * base_frame_no);
-        set_state(base_frame_no, FrameState::HoS);
-        nFreeFrames--;
     }
     else // if the info_frame_no has a number other than zero, use that number as the address to store info frame
     {
         bitmap = (unsigned char *)(FRAME_SIZE * info_frame_no);
-        set_state(info_frame_no, FrameState::HoS);
-        nFreeFrames--;
     }
+
+    /*
+     * IMPORTANT
+     * DO NOT TOUCH
+     */
+    set_state(info_frame_no, FrameState::HoS);
+    nFreeFrames--;
 
     if (!head)
     {
@@ -286,7 +293,7 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
 //  HEAD-OF-SEQUENCE. If not, something went wrong. If it is, mark it as FREE.
 //  Traverse the subsequent frames until you reach one that is FREE or
 //  HEAD-OF-SEQUENCE. Until then, mark the frames that you traverse as FREE.
-void ContFramePool::release_frames(unsigned long _first_frame_no) // absolute frame number (?)
+void ContFramePool::release_frames(unsigned long _first_frame_no) // absolute frame number that marks the first frame to free
 {
     // figure which frame pool this frame belongs to.
 
@@ -295,24 +302,55 @@ void ContFramePool::release_frames(unsigned long _first_frame_no) // absolute fr
     ContFramePool *temp = head;
     while (!temp)
     {
-        if (temp->base_frame_no == _first_frame_no) // frame pool found
+        if (temp->base_frame_no <= _first_frame_no && _first_frame_no < temp->base_frame_no + temp->nframes) // frame pool found
         {
-            if (temp->get_state(_first_frame_no) != FrameState::HoS) // check if the first frame is HoS
+            // _frame_frame_no: absolute frame number
+            // _base_frame_no: starting absolute frame number of the frame pool
+            unsigned long frame = _first_frame_no - temp->base_frame_no; // get the relative frame number of the pool
+            if (temp->get_state(frame) != FrameState::HoS)               // check if the first frame is HoS
             {
                 Console::puts("release_frames(): first frame not a Head-Of-Sequence");
                 return;
             }
 
-            auto i = temp->base_frame_no;
-            while (temp->get_state(i) != FrameState::HoS) // freeing the frames
+            Console::puts("Freeing Frame ");
+            Console::puti(frame);
+            Console::puts("\n");
+
+            temp->set_state(frame, FrameState::Free);
+            temp->nFreeFrames++;
+
+            frame++;
+            // frane < temp->nframes, not <= because frame starts with 0
+            while (frame < temp->nframes && temp->get_state(frame) != FrameState::HoS) // freeing the frames
             {
-                temp->set_state(i, FrameState::Free);
-                i++;
+                Console::puts("Freeing Frame ");
+                Console::puti(frame);
+                Console::puts("\n");
+                temp->set_state(frame, FrameState::Free);
+                frame++;
+
+                frame++;
+                temp->nFreeFrames++;
             }
 
             // unlinking the node
-            temp->prev->next = temp->next;
-            temp->next->prev = temp->prev;
+            if (temp->nFreeFrames == temp->nframes)
+            {
+                Console::puts("Entire frame pool is now free, removing from list.\n");
+
+                if (temp->prev)
+                    temp->prev->next = temp->next;
+                if (temp->next)
+                    temp->next->prev = temp->prev;
+
+                if (temp == head)
+                    head = temp->next;
+                if (temp == tail)
+                    tail = temp->prev;
+
+                // delete temp; -> Unnecessay, correct?
+            }
             break;
         }
 
@@ -331,7 +369,8 @@ unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames)
      * so we multiply the number of frames by 2 and divide by frame size
      * and round it up to get the minimum number of info_frames required.
      */
-    unsigned long info_frame_required = (_n_frames * 2 + FRAME_SIZE - 1) / FRAME_SIZE;
+    unsigned long FRAME_SIZE_BITS = FRAME_SIZE * 8;
+    unsigned long info_frame_required = (_n_frames * 2 + FRAME_SIZE_BITS - 1) / FRAME_SIZE_BITS;
 
     return info_frame_required;
 }
