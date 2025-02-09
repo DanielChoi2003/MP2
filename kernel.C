@@ -19,8 +19,8 @@
 #define KB *(0x1 << 10)
 /* Makes things easy to read */
 
-#define KERNEL_POOL_START_FRAME ((2 MB) / (4 KB))
-#define KERNEL_POOL_SIZE ((2 MB) / (4 KB))
+#define KERNEL_POOL_START_FRAME ((2 MB) / (4 KB)) // starts at frame no. 512
+#define KERNEL_POOL_SIZE ((2 MB) / (4 KB))        // contains 512 frames
 #define PROCESS_POOL_START_FRAME ((4 MB) / (4 KB))
 #define PROCESS_POOL_SIZE ((28 MB) / (4 KB))
 /* Definition of the kernel and process memory pools */
@@ -77,15 +77,15 @@ int main()
     // In later machine problems, we will be using two pools. You may want to comment this out and test
     // the management of two pools.
 
-    unsigned long n_info_frames = ContFramePool::needed_info_frames(PROCESS_POOL_SIZE);
+    // unsigned long n_info_frames = ContFramePool::needed_info_frames(PROCESS_POOL_SIZE);
 
-    unsigned long process_mem_pool_info_frame = kernel_mem_pool.get_frames(n_info_frames);
+    // unsigned long process_mem_pool_info_frame = kernel_mem_pool.get_frames(n_info_frames);
 
-    ContFramePool process_mem_pool(PROCESS_POOL_START_FRAME,
-                                   PROCESS_POOL_SIZE,
-                                   process_mem_pool_info_frame);
+    // ContFramePool process_mem_pool(PROCESS_POOL_START_FRAME,
+    //                                PROCESS_POOL_SIZE,
+    //                                process_mem_pool_info_frame);
 
-    process_mem_pool.mark_inaccessible(MEM_HOLE_START_FRAME, MEM_HOLE_SIZE);
+    // process_mem_pool.mark_inaccessible(MEM_HOLE_START_FRAME, MEM_HOLE_SIZE);
 
     /* -- MOST OF WHAT WE NEED IS SETUP. THE KERNEL CAN START. */
 
@@ -141,6 +141,12 @@ void test_memory(ContFramePool *_pool, unsigned int _allocs_to_go)
                     ; // We throw a fit.
             }
         }
+        Console::puts("frame: ");
+        Console::puti(frame);
+        Console::puts(" | number of frames allocated: ");
+        Console::puti(n_frames);
+        Console::puts("\n");
         ContFramePool::release_frames(frame); // We free the memory that we allocated above.
+        ContFramePool::check_freed_frames(frame, n_frames);
     }
 }

@@ -69,8 +69,8 @@ private:
     Error
   };
 
-  FrameState get_state(unsigned long _frame_no);
-  void set_state(unsigned long _frame_no, FrameState _state);
+  FrameState get_state(unsigned long _frame_no);              // RELATIVE
+  void set_state(unsigned long _frame_no, FrameState _state); // RELATIVE
 
 public:
   // The frame size is the same as the page size, duh...
@@ -94,7 +94,7 @@ public:
    is initialized.
    */
 
-  unsigned long get_frames(unsigned int _n_frames);
+  unsigned long get_frames(unsigned int _n_frames); // ABSOLUTE
   /*
    Allocates a number of contiguous frames from the frame pool.
    _n_frames: Size of contiguous physical memory to allocate,
@@ -112,7 +112,7 @@ public:
    _n_frames: Number of contiguous frames to mark as inaccessible.
    */
 
-  static void release_frames(unsigned long _first_frame_no);
+  static void release_frames(unsigned long _first_frame_no); // ABSOLUTE
   /*
    Releases a previously allocated contiguous sequence of frames
    back to its frame pool.
@@ -135,6 +135,12 @@ public:
      _n_frames / 32k + (_n_frames % 32k > 0 ? 1 : 0) (always round up!)
    Other implementations need a different number of info frames.
    The exact number is computed in this function..
+   */
+
+  static void check_freed_frames(unsigned long _first_frame_no, unsigned long _frame_allocated_size);
+  /*
+   * checks if the frames released by release_frames() have been
+   * truly freed.
    */
 };
 #endif

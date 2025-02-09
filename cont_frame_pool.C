@@ -322,29 +322,32 @@ void ContFramePool::release_frames(unsigned long _first_frame_no) // absolute fr
             if (temp->get_state(frame) != FrameState::HoS)               // check if the first frame is HoS
             {
                 Console::puts("release_frames(): first frame not a Head-Of-Sequence");
-                return;
+                break;
             }
 
-            Console::puts("Freeing Frame ");
-            Console::puti(frame);
+            Console::puts("First Frame Freed: ");
+            Console::puti(frame + temp->base_frame_no);
             Console::puts("\n");
 
             temp->set_state(frame, FrameState::Free);
             temp->nFreeFrames++;
 
             frame++;
-            // frane < temp->nframes, not <= because frame starts with 0
-            while (frame < temp->nframes && temp->get_state(frame) != FrameState::HoS) // freeing the frames
+            // frame < temp->nframes, not <= because frame starts with 0
+            // free within the bound of the frame pool
+            while (frame < temp->nframes && temp->get_state(frame) == FrameState::Used) // freeing the frames
             {
-                Console::puts("Freeing Frame ");
-                Console::puti(frame);
-                Console::puts("\n");
+                // Console::puts("Freeing Frame ");
+                // Console::puti(frame);
+                // Console::puts("\n");
                 temp->set_state(frame, FrameState::Free);
-                frame++;
 
                 frame++;
                 temp->nFreeFrames++;
             }
+            Console::puts("Last Frame Freed: ");
+            Console::puti(frame + temp->base_frame_no - 1);
+            Console::puts("\n");
 
             // unlinking the node
             if (temp->nFreeFrames == temp->nframes)
@@ -385,4 +388,40 @@ unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames)
     unsigned long info_frame_required = (_n_frames * 2 + FRAME_SIZE_BITS - 1) / FRAME_SIZE_BITS;
 
     return info_frame_required;
+}
+
+void ContFramePool::check_freed_frames(unsigned long _first_frame_no, unsigned long _frame_allocated_size)
+{
+    ContFramePool *temp = head;
+    // Console::puts("temp: ");
+    // Console::puti(temp->base_frame_no);
+    // Console::puts("\n");
+    // Console::puts("_first_frame_no: ");
+    // Console::puti(_first_frame_no);
+    // Console::puts("\n");
+    while (temp)
+    {
+        if (temp->base_frame_no <= _first_frame_no && _first_frame_no < temp->base_frame_no + temp->nframes) // frame pool found
+        {
+            // _frame_frame_no: absolute frame number
+            // _base_frame_no: starting absolute frame number of the frame pool
+            unsigned long frame = _first_frame_no - temp->base_frame_no; // get the relative frame number of the pool
+            unsigned long end = frame + _frame_allocated_size;
+            // frane < temp->nframes, not <= because frame starts with 0
+            while (frame < end)
+            {
+                if (temp->get_state(frame) != FrameState::Free)
+                {
+                    Console::puts("FRAME NOT FREED PROPERLY\n");
+                    Console::puts("Frame number: ");
+                    Console::puti(frame + temp->base_frame_no);
+                    Console::puts("\n");
+                }
+                frame++;
+            }
+            break;
+        }
+
+        temp = temp->next;
+    }
 }
