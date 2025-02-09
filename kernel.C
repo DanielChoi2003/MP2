@@ -77,15 +77,15 @@ int main()
     // In later machine problems, we will be using two pools. You may want to comment this out and test
     // the management of two pools.
 
-    // unsigned long n_info_frames = ContFramePool::needed_info_frames(PROCESS_POOL_SIZE);
+    unsigned long n_info_frames = ContFramePool::needed_info_frames(PROCESS_POOL_SIZE);
 
-    // unsigned long process_mem_pool_info_frame = kernel_mem_pool.get_frames(n_info_frames);
+    unsigned long process_mem_pool_info_frame = kernel_mem_pool.get_frames(n_info_frames);
 
-    // ContFramePool process_mem_pool(PROCESS_POOL_START_FRAME,
-    //                                PROCESS_POOL_SIZE,
-    //                                process_mem_pool_info_frame);
+    ContFramePool process_mem_pool(PROCESS_POOL_START_FRAME,
+                                   PROCESS_POOL_SIZE,
+                                   process_mem_pool_info_frame);
 
-    // process_mem_pool.mark_inaccessible(MEM_HOLE_START_FRAME, MEM_HOLE_SIZE);
+    process_mem_pool.mark_inaccessible(MEM_HOLE_START_FRAME, MEM_HOLE_SIZE);
 
     /* -- MOST OF WHAT WE NEED IS SETUP. THE KERNEL CAN START. */
 
@@ -94,6 +94,7 @@ int main()
     /* -- TEST MEMORY ALLOCATOR */
 
     test_memory(&kernel_mem_pool, N_TEST_ALLOCATIONS);
+    test_memory(&process_mem_pool, N_TEST_ALLOCATIONS);
 
     /* ---- Add code here to test the frame pool implementation. */
 

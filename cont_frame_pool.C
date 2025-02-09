@@ -230,6 +230,7 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
     }
     else
     {
+        Console::puts("Attaching a frame pool\n");
         tail->next = this;
         this->prev = tail;
         tail = this;
