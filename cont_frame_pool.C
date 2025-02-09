@@ -233,6 +233,7 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
         tail->next = this;
         this->prev = tail;
         tail = this;
+        tail->next = nullptr;
     }
 
     Console::puts("Frame Pool initialized\n");
@@ -273,6 +274,12 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames)
         nFreeFrames--;
     }
 
+    // Console::puts("beginning_frame_no: ");
+    // Console::puti(beginning_frame_no);
+    // Console::puts("\n");
+    // Console::puts("base_frame_no: ");
+    // Console::puti(base_frame_no);
+    // Console::puts("\n");
     return (beginning_frame_no + base_frame_no);
 }
 
@@ -298,9 +305,14 @@ void ContFramePool::release_frames(unsigned long _first_frame_no) // absolute fr
     // figure which frame pool this frame belongs to.
 
     // iterate through the linked list and compare the value of base frame to the argument
-
     ContFramePool *temp = head;
-    while (!temp)
+    // Console::puts("temp: ");
+    // Console::puti(temp->base_frame_no);
+    // Console::puts("\n");
+    // Console::puts("_first_frame_no: ");
+    // Console::puti(_first_frame_no);
+    // Console::puts("\n");
+    while (temp)
     {
         if (temp->base_frame_no <= _first_frame_no && _first_frame_no < temp->base_frame_no + temp->nframes) // frame pool found
         {
